@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAG System - Retrieval-Augmented Generation</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+<div class="app">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="logo">
+            <div class="logo-icon">R</div>
+            <div>
+                <h1>RAG System</h1>
+                <span>Retrieval-Augmented Generation</span>
+            </div>
+        </div>
+
+        <nav class="nav-tabs">
+            <button class="nav-tab active" data-panel="query-panel">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                Ask Questions
+            </button>
+            <button class="nav-tab" data-panel="architecture-panel">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+                Architecture
+            </button>
+            <button class="nav-tab" data-panel="evaluation-panel">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>
+                Evaluation
+            </button>
+            <button class="nav-tab" data-panel="monitoring-panel">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                Monitoring
+            </button>
+        </nav>
+
+        <div class="doc-list">
+            <h3>Documents</h3>
+            <div id="doc-list-items">
+                <div class="loading"><div class="spinner"></div> Loading...</div>
+            </div>
+        </div>
+
+        <div class="upload-area" id="upload-area">
+            <input type="file" id="file-input" accept=".txt,.md,.pdf,.docx,.html,.htm" multiple>
+            <p>Drop files here or click to upload</p>
+            <p style="font-size:11px; margin-top:4px">.txt .md .pdf .docx .html</p>
+        </div>
+
+        <button class="nav-tab" onclick="ingestAll()" style="border: 1px solid var(--border);">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.66 0 3-4.03 3-9s-1.34-9-3-9m0 18c-1.66 0-3-4.03-3-9s1.34-9 3-9"/></svg>
+            Re-index All Documents
+        </button>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main">
+        <!-- Query Panel -->
+        <div class="panel active" id="query-panel">
+            <div class="query-section">
+                <h2 style="font-size: 24px; font-weight: 700; margin-bottom: 20px; letter-spacing: -0.5px;">
+                    Ask Your Documents
+                </h2>
+                <div class="query-box">
+                    <textarea id="query-input" placeholder="Ask a question about your documents..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();submitQuery()}"></textarea>
+                    <button onclick="submitQuery()" id="submit-btn">Search</button>
+                </div>
+                <div class="query-options">
+                    <label>
+                        Top-K:
+                        <input type="number" id="top-k" value="5" min="1" max="20" style="width:50px">
+                    </label>
+                    <label>
+                        <input type="checkbox" id="use-reranking" checked>
+                        Reranking
+                    </label>
+                </div>
+            </div>
+
+            <div id="answer-container" class="answer-container"></div>
+        </div>
+
+        <!-- Architecture Panel -->
+        <div class="panel" id="architecture-panel">
+            <h2 class="section-title">System Architecture</h2>
+
+            <div class="arch-diagram">
+                <h3 style="text-align:center; margin-bottom:16px; color:var(--text-dim); font-size:13px;">OFFLINE / BATCH PIPELINE</h3>
+                <div class="pipeline">
+                    <div class="pipe-step">Document Sources<br><small>PDF/MD/TXT/DOCX/HTML</small></div>
+                    <span class="pipe-arrow">&#8594;</span>
+                    <div class="pipe-step highlight">Parser<br><small>Format-specific</small></div>
+                    <span class="pipe-arrow">&#8594;</span>
+                    <div class="pipe-step highlight">Chunker<br><small>Semantic + Overlap</small></div>
+                    <span class="pipe-arrow">&#8594;</span>
+                    <div class="pipe-step highlight">Embedder<br><small>all-MiniLM-L6-v2</small></div>
+                    <span class="pipe-arrow">&#8594;</span>
+                    <div class="pipe-step">Vector Store<br><small>ChromaDB + BM25</small></div>
+                </div>
+
+                <h3 style="text-align:center; margin:24px 0 16px; color:var(--text-dim); font-size:13px;">ONLINE QUERY PIPELINE</h3>
+                <div class="pipeline">
+                    <div class="pipe-step">User Query</div>
+                    <span class="pipe-arrow">&#8594;</span>
+                    <div class="pipe-step highlight">Query Rewrite<br><small>Expand + Clean</small></div>
+                    <span class="pipe-arrow">&#8594;</span>
+                    <div class="pipe-step highlight">Hybrid Search<br><small>Vector + BM25 RRF</small></div>
+                    <span class="pipe-arrow">&#8594;</span>
+                    <div class="pipe-step highlight">Reranker<br><small>Embedding Rerank</small></div>
+                    <span class="pipe-arrow">&#8594;</span>
+                    <div class="pipe-step">Context Assembly</div>
+                    <span class="pipe-arrow">&#8594;</span>
+                    <div class="pipe-step highlight">Ollama LLM<br><small>llama3.2</small></div>
+                    <span class="pipe-arrow">&#8594;</span>
+                    <div class="pipe-step">Answer + Citations</div>
+                </div>
+            </div>
+
+            <div class="info-grid">
+                <div class="info-card">
+                    <h3>1. Ingestion & Parsing</h3>
+                    <ul>
+                        <li>Format-specific parsers (PDF, DOCX, HTML, Markdown, Text)</li>
+                        <li>Structure preservation (headings, page numbers)</li>
+                        <li>Text cleaning: normalize whitespace, remove artifacts</li>
+                        <li>Metadata extraction: filename, timestamps, file type</li>
+                    </ul>
+                </div>
+                <div class="info-card">
+                    <h3>2. Chunking Strategy</h3>
+                    <ul>
+                        <li>Semantic chunking by headings/sections first</li>
+                        <li>Sentence-boundary splitting for large sections</li>
+                        <li>~300 tokens per chunk with ~50 token overlap</li>
+                        <li>Minimum chunk size filter (50 tokens)</li>
+                        <li>Each chunk tagged with source metadata</li>
+                    </ul>
+                </div>
+                <div class="info-card">
+                    <h3>3. Embedding & Indexing</h3>
+                    <ul>
+                        <li>all-MiniLM-L6-v2 (384-dim, normalized)</li>
+                        <li>ChromaDB with HNSW cosine similarity index</li>
+                        <li>BM25 index for keyword/lexical matching</li>
+                        <li>Incremental updates via upsert</li>
+                    </ul>
+                </div>
+                <div class="info-card">
+                    <h3>4. Retrieval & Reranking</h3>
+                    <ul>
+                        <li>Query rewriting: abbreviation expansion, cleanup</li>
+                        <li>Hybrid search: vector + BM25 with RRF fusion</li>
+                        <li>Configurable alpha (default 0.7 vector weight)</li>
+                        <li>Re-ranking via embedding similarity rescoring</li>
+                        <li>Top-k filtering (20 candidates -> 5 final)</li>
+                    </ul>
+                </div>
+                <div class="info-card">
+                    <h3>5. Generation & Grounding</h3>
+                    <ul>
+                        <li>Ollama LLM (llama3.2) with low temperature (0.1)</li>
+                        <li>System prompt enforces source-only answers</li>
+                        <li>Mandatory citation format [Source: filename]</li>
+                        <li>Abstention when context is insufficient</li>
+                        <li>Context deduplication and compression</li>
+                    </ul>
+                </div>
+                <div class="info-card">
+                    <h3>6. Safety & Guardrails</h3>
+                    <ul>
+                        <li>Prompt injection detection (pattern matching)</li>
+                        <li>Query length limits</li>
+                        <li>Retrieval confidence thresholds</li>
+                        <li>Graceful fallback: "I don't know" responses</li>
+                        <li>Abstention when retrieval score too low</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Evaluation Panel -->
+        <div class="panel" id="evaluation-panel">
+            <h2 class="section-title">Evaluation Framework</h2>
+
+            <div class="info-grid">
+                <div class="info-card">
+                    <h3>A. Chunking / Ingestion Evaluation</h3>
+                    <p><strong>Goal:</strong> Chunks should be coherent and retrievable.</p>
+                    <ul>
+                        <li>Manual audits on sampled set: coherence, duplication rate, metadata correctness</li>
+                        <li>Automated checks: avg chunk length, overlap %, parser error rates</li>
+                        <li>Regression tests on known "hard" documents (tables, PDFs)</li>
+                        <li>Monitor: chunk size distribution, parser failures per format</li>
+                    </ul>
+                </div>
+                <div class="info-card">
+                    <h3>B. Retrieval Evaluation</h3>
+                    <p><strong>Goal:</strong> Relevant chunks appear in top-k results.</p>
+                    <ul>
+                        <li>Labeled dataset: (query, relevant chunks/docs)</li>
+                        <li>Recall@K: fraction of queries with relevant chunk in top-k</li>
+                        <li>MRR / nDCG: reward correct ranking order</li>
+                        <li>Slice by doc type, query type, freshness</li>
+                        <li>Weak supervision: synthetic Q/A pairs from docs</li>
+                    </ul>
+                </div>
+                <div class="info-card">
+                    <h3>C. Reranker Evaluation</h3>
+                    <p><strong>Goal:</strong> Reranking improves precision.</p>
+                    <ul>
+                        <li>Compare nDCG@10 before vs after reranking</li>
+                        <li>Latency/cost tradeoff analysis</li>
+                        <li>Error analysis: bias toward longer passages</li>
+                        <li>A/B test: with/without reranking</li>
+                    </ul>
+                </div>
+                <div class="info-card">
+                    <h3>D. Generation Evaluation</h3>
+                    <p><strong>Goal:</strong> Answers are correct, grounded, and cited.</p>
+                    <ul>
+                        <li><strong>Correctness:</strong> Does it answer the question?</li>
+                        <li><strong>Faithfulness:</strong> Is it supported by retrieved context?</li>
+                        <li><strong>Citation quality:</strong> Do citations back the claims?</li>
+                        <li>Human grading rubric + LLM-as-judge</li>
+                        <li>Attribution check: each sentence maps to a cited chunk</li>
+                    </ul>
+                </div>
+                <div class="info-card">
+                    <h3>E. End-to-End Evaluation</h3>
+                    <ul>
+                        <li>Task success rate, user satisfaction</li>
+                        <li>Latency p50/p95, cost per query</li>
+                        <li>Abstention rate balance (too high = useless, too low = hallucinations)</li>
+                        <li>User feedback loop (thumbs up/down)</li>
+                        <li>Failure case collection for eval set growth</li>
+                    </ul>
+                </div>
+                <div class="info-card">
+                    <h3>F. Continuous Improvement</h3>
+                    <ul>
+                        <li>Log all queries, retrieved docs, outputs, latency</li>
+                        <li>Track drift: embedding distribution, score distributions</li>
+                        <li>Collect failure cases into regression test suite</li>
+                        <li>Tune: chunking params, k, reranker thresholds</li>
+                        <li>Add domain-specific synonym expansions</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Monitoring Panel -->
+        <div class="panel" id="monitoring-panel">
+            <h2 class="section-title">Live Monitoring & Metrics</h2>
+
+            <div id="metrics-container">
+                <div class="loading"><div class="spinner"></div> Loading metrics...</div>
+            </div>
+
+            <h3 style="margin: 32px 0 16px; font-size: 16px;">System Configuration</h3>
+            <div id="config-container"></div>
+
+            <h3 style="margin: 32px 0 16px; font-size: 16px;">Recent Query Logs</h3>
+            <div id="logs-container" style="overflow-x: auto;">
+                <div class="loading"><div class="spinner"></div> Loading logs...</div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script src="/static/app.js"></script>
+</body>
+</html>

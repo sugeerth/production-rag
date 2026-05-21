@@ -1,0 +1,48 @@
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+env/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Node
+node_modules/
+dist/
+build/
+.next/
+
+# OS
+.DS_Store
+
+# Logs
+*.log
+
+# ML model artifacts
+*.ckpt
+*.pt
+*.pth
+*.bin
+*.safetensors
+*.h5
+*.onnx
+*.gguf
+checkpoints/
+wandb/
+
+# Vector store / databases
+chroma/
+chroma_db/
+data/chroma_db/
+*.sqlite
+*.sqlite3
+*.db
+
+# RAG runtime data
+data/query_logs.jsonl
