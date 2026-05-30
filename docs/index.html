@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Production RAG — Hybrid search, reranking & cited answers</title>
+<meta name="description" content="Production-grade Retrieval-Augmented Generation over private documents: hybrid BM25 + vector search, reranking, and traceable, cited answers." />
+<style>
+  :root{
+    --bg:#0b0e14; --bg2:#11151f; --surface:#161b27; --border:#222a3a;
+    --text:#e6e9ef; --dim:#9aa4b8; --accent:#6ea8fe; --accent2:#7ee0c0; --warn:#ffcf6e;
+    --mono:"SFMono-Regular",ui-monospace,"JetBrains Mono",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:radial-gradient(1200px 600px at 70% -10%,#16213a 0%,var(--bg) 55%);color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;line-height:1.6;-webkit-font-smoothing:antialiased}
+  a{color:var(--accent);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .wrap{max-width:960px;margin:0 auto;padding:0 24px}
+  header{padding:72px 0 40px;text-align:center}
+  .badge{display:inline-block;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent2);
+    border:1px solid var(--border);border-radius:999px;padding:6px 14px;margin-bottom:22px}
+  h1{font-size:clamp(2rem,5vw,3.2rem);margin:0 0 14px;line-height:1.1;font-weight:800;
+    background:linear-gradient(90deg,#fff,#9fc0ff);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .tag{color:var(--dim);font-size:1.15rem;max-width:680px;margin:0 auto 28px}
+  .cta a{display:inline-block;margin:6px;padding:12px 22px;border-radius:10px;font-weight:600}
+  .cta .primary{background:var(--accent);color:#06101f}
+  .cta .ghost{border:1px solid var(--border);color:var(--text)}
+  section{padding:36px 0;border-top:1px solid var(--border)}
+  h2{font-size:1.6rem;margin:0 0 18px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px 20px}
+  .card h3{margin:0 0 8px;font-size:1.05rem;color:#fff}
+  .card p{margin:0;color:var(--dim);font-size:.95rem}
+  .stack{display:flex;flex-wrap:wrap;gap:10px}
+  .chip{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:.85rem;font-family:var(--mono);color:var(--accent2)}
+  pre{background:#0a0d15;border:1px solid var(--border);border-radius:12px;padding:18px;overflow:auto;
+    font-family:var(--mono);font-size:.82rem;color:#cdd6e6;line-height:1.45}
+  .arch pre{font-size:.72rem}
+  ol{padding-left:20px;color:var(--dim)} ol li{margin:8px 0} ol b{color:var(--text)}
+  table{width:100%;border-collapse:collapse;font-size:.9rem}
+  td,th{border:1px solid var(--border);padding:9px 12px;text-align:left}
+  th{color:var(--accent2);font-weight:600}
+  td:first-child{color:var(--text);font-weight:500} td{color:var(--dim)}
+  .note{background:rgba(255,207,110,.08);border:1px solid rgba(255,207,110,.3);border-radius:12px;padding:14px 18px;color:var(--warn);font-size:.92rem}
+  footer{padding:48px 0;text-align:center;color:var(--dim);font-size:.9rem}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="badge">RAG &amp; Retrieval · ML System Design</div>
+    <h1>Production RAG</h1>
+    <p class="tag">Production-grade Retrieval-Augmented Generation over your private documents — hybrid BM25 + vector search, cross-encoder reranking, and traceable, cited answers.</p>
+    <div class="cta">
+      <a class="primary" href="https://github.com/sugeerth/production-rag">View on GitHub →</a>
+      <a class="ghost" href="#run">Run it locally</a>
+    </div>
+  </div>
+</header>
+
+<section>
+  <div class="wrap">
+    <h2>Overview</h2>
+    <p style="color:var(--dim)">A production-quality RAG system for answering natural-language questions over private documents. It fuses hybrid BM25 + dense vector retrieval with a reranking stage, and returns answers with inline citations and full traceability back to source chunks — built for low-latency interactive use with hallucination guardrails plus built-in evaluation and monitoring.</p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>What it does</h2>
+    <div class="grid">
+      <div class="card"><h3>Hybrid retrieval</h3><p>BM25 lexical search + dense vector search fused via Reciprocal Rank Fusion.</p></div>
+      <div class="card"><h3>Reranking</h3><p>A reranking stage lifts the most relevant chunks before generation.</p></div>
+      <div class="card"><h3>Inline citations</h3><p><code>[Source: filename]</code> with full answer-to-source traceability.</p></div>
+      <div class="card"><h3>Multi-format ingestion</h3><p>PDF, Markdown, DOCX, HTML, and plain text, with incremental re-indexing on upload.</p></div>
+      <div class="card"><h3>Safety guardrails</h3><p>Prompt-injection detection and confidence-based abstention.</p></div>
+      <div class="card"><h3>Eval &amp; monitoring</h3><p>Built-in evaluation suite and a live monitoring dashboard.</p></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>Tech stack</h2>
+    <div class="stack">
+      <span class="chip">Python</span>
+      <span class="chip">FastAPI · Uvicorn</span>
+      <span class="chip">ChromaDB (HNSW)</span>
+      <span class="chip">BM25 (rank-bm25)</span>
+      <span class="chip">Sentence-Transformers · all-MiniLM-L6-v2</span>
+      <span class="chip">Ollama · llama3.2</span>
+    </div>
+  </div>
+</section>
+
+<section class="arch">
+  <div class="wrap">
+    <h2>End-to-end architecture</h2>
+    <pre>
+                        OFFLINE PIPELINE
+  ┌──────────┐    ┌────────┐    ┌─────────┐    ┌──────────┐    ┌───────────┐
+  │ Document │───>│ Parser │───>│ Chunker │───>│ Embedder │───>│ Vector DB │
+  │ Sources  │    │        │    │         │    │          │    │ + BM25    │
+  └──────────┘    └────────┘    └─────────┘    └──────────┘    └───────────┘
+  PDF/MD/DOCX/     Format-       Semantic +     MiniLM-L6       ChromaDB
+  HTML/TXT         specific      overlap        384-dim         HNSW index
+
+                        ONLINE PIPELINE
+  ┌───────┐  ┌─────────┐  ┌────────┐  ┌────────┐  ┌─────────┐  ┌────────┐
+  │ Query │->│ Rewrite │->│ Hybrid │->│Reranker│->│ Context │->│Ollama  │-> Answer
+  │       │  │ +Expand │  │ Search │  │        │  │Assembly │  │LLM     │  +Citations
+  └───────┘  └─────────┘  └────────┘  └────────┘  └─────────┘  └────────┘
+  User input  Abbrev.      Vector+BM25  Embedding   Dedupe +     llama3.2
+              expansion    RRF fusion   re-score    compress     T=0.1</pre>
+    <ol>
+      <li><b>Ingest:</b> Parser extracts text → Chunker splits into ~300-token segments → Embedder creates vectors → stored in ChromaDB + BM25 index.</li>
+      <li><b>Answer:</b> Query rewritten/expanded → hybrid search (vector + BM25 via RRF) → top-20 candidates reranked to top-5 → context assembled with citations → Ollama generates a grounded answer → safety checks → answer with sources.</li>
+    </ol>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>Scope &amp; assumptions</h2>
+    <table>
+      <tr><th>Parameter</th><th>Value</th></tr>
+      <tr><td>Corpus scale</td><td>10⁵ – 10⁷ chunks</td></tr>
+      <tr><td>Formats</td><td>PDF, Markdown, DOCX, HTML, plain text</td></tr>
+      <tr><td>Update frequency</td><td>Near-real-time (upload triggers re-indexing)</td></tr>
+      <tr><td>Latency budget</td><td>p95 &lt; 2s retrieval, &lt; 10s end-to-end with generation</td></tr>
+      <tr><td>Output</td><td>Natural-language answer + source citations</td></tr>
+    </table>
+  </div>
+</section>
+
+<section id="run">
+  <div class="wrap">
+    <h2>Run it locally</h2>
+    <p class="note">This is an interactive system backed by FastAPI + a local Ollama LLM, so the live UI runs on your machine — not on static hosting. Three steps:</p>
+    <pre>
+# 1. Install dependencies
+pip install -r requirements.txt
+
+# 2. Ensure Ollama is running with llama3.2
+ollama pull llama3.2
+ollama serve            # if not already running
+
+# 3. Launch the application
+python app.py
+
+# 4. Open http://localhost:8000</pre>
+    <p style="color:var(--dim)">Ships with 3 sample documents. Upload more via the UI or drop files into <code>documents/</code> and click “Re-index All Documents”.</p>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <a href="https://github.com/sugeerth/production-rag">github.com/sugeerth/production-rag</a> ·
+    <a href="https://sugeerth.github.io/portfolio/#projects">Back to portfolio</a>
+  </div>
+</footer>
+</body>
+</html>
